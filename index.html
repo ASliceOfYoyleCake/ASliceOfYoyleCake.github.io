@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coin Clicker Game</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; }
-        #clickButton { padding: 20px 40px; font-size: 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        #clickButton { padding: 20px 40px; font-size: 24px; background-color: #4CAF50; color: white; border: none; }
         #clickButton:hover { background-color: #45a049; }
+        #saveButton { background-color: #2196F3; color: white; border: none; }
         .stats { font-size: 18px; font-weight: bold; }
     </style>
 </head>
@@ -23,22 +24,52 @@
     <button id="upgradeButton" onclick="buyUpgrade()">
         Upgrade (Cost: <span id="upgradeCost">10</span>)
     </button>
+    <br>
+    <!-- New Save Button -->
+    <button id="saveButton" onclick="saveGame()">Save Progress</button>
 
     <script>
-        // Game State
+        // Default Game State
         let gameData = {
             coins: 0,
             coinsPerClick: 1,
             upgradeCost: 10
+        };
+
+        // --- SAVE/LOAD LOGIC ---
+
+        // Function to save data
+        function saveGame() {
+            localStorage.setItem("coinClickerSave", JSON.stringify(gameData));
+            console.log("Game Saved!");
         }
 
-        // Click Function
+        // Function to load data
+        function loadGame() {
+            let savedData = JSON.parse(localStorage.getItem("coinClickerSave"));
+            if (savedData !== null) {
+                gameData = savedData;
+                updateUI();
+            }
+        }
+
+        // Attempt to save when the user closes the tab or refreshes
+        window.addEventListener("beforeunload", function () {
+            saveGame();
+        });
+
+        // Load the game as soon as the page opens
+        window.onload = function() {
+            loadGame();
+        };
+
+        // --- ORIGINAL GAME LOGIC ---
+
         function clickMain() {
             gameData.coins += gameData.coinsPerClick;
             updateUI();
         }
 
-        // Upgrade Function
         function buyUpgrade() {
             if (gameData.coins >= gameData.upgradeCost) {
                 gameData.coins -= gameData.upgradeCost;
@@ -50,7 +81,6 @@
             }
         }
 
-        // Update Screen Elements
         function updateUI() {
             document.getElementById("coinCount").innerText = gameData.coins;
             document.getElementById("gpc").innerText = gameData.coinsPerClick;
