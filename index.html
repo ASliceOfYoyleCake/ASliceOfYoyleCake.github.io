@@ -3,89 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coin Clicker Game</title>
+    <title>Coin Clicker Pro</title>
     <style>
-        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        #clickButton { padding: 20px 40px; font-size: 24px; background-color: #4CAF50; color: white; border: none; }
-        #clickButton:hover { background-color: #45a049; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; border-radius: 5px; border: 1px solid #ccc; transition: 0.2s; }
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; }
+        #clickButton { padding: 30px 60px; font-size: 28px; background-color: #4CAF50; color: white; border: none; border-radius: 50%; box-shadow: 0 5px #2e7d32; }
+        #clickButton:active { box-shadow: 0 2px #2e7d32; transform: translateY(3px); }
         #saveButton { background-color: #2196F3; color: white; border: none; }
-        .stats { font-size: 18px; font-weight: bold; }
+        .upgrade-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px; }
+        .hidden { display: none; }
+        .stats { font-size: 20px; font-weight: bold; color: #2c3e50; }
+        .sub-stat { font-size: 14px; color: #666; }
     </style>
 </head>
 <body>
 
+<div class="container">
     <h1>Coin Clicker!</h1>
     <p class="stats">Coins: <span id="coinCount">0</span></p>
-    <p>Coins per click: <span id="gpc">1</span></p>
+    <p class="sub-stat">Click Power: <span id="gpc">1</span> | Auto Speed: <span id="autoSpeed">Off</span></p>
+    
+    <button id="clickButton" onclick="clickMain()">💰</button>
+    
+    <div class="upgrade-section">
+        <!-- Manual Click Upgrade -->
+        <button id="upgradeButton" onclick="buyUpgrade()">
+            Better Clicks (Cost: <span id="upgradeCost">10</span>)
+        </button>
 
-    <button id="clickButton" onclick="clickMain()">Click Me!</button>
+        <!-- Auto Clicker (Levels 1-10) -->
+        <button id="autoButton" onclick="buyAutoClicker()">
+            Auto-Clicker Lvl <span id="autoLvl">0</span> (Cost: <span id="autoCost">50</span>)
+        </button>
+
+        <!-- Hidden Upgrade: Appears at 100 coins -->
+        <button id="mineButton" class="hidden" onclick="buyMine()" style="background-color: #ffd700;">
+            Golden Mine (+5/click) (Cost: <span id="mineCost">200</span>)
+        </button>
+    </div>
+
     <br>
-    <button id="upgradeButton" onclick="buyUpgrade()">
-        Upgrade (Cost: <span id="upgradeCost">10</span>)
-    </button>
-    <br>
-    <!-- New Save Button -->
     <button id="saveButton" onclick="saveGame()">Save Progress</button>
+</div>
 
-    <script>
-        // Default Game State
-        let gameData = {
-            coins: 0,
-            coinsPerClick: 1,
-            upgradeCost: 10
-        };
+<script>
+    // Default Game State
+    let gameData = {
+        coins: 0,
+        coinsPerClick: 1,
+        upgradeCost: 10,
+        autoLvl: 0,
+        autoCost: 50,
+        mineCost: 200,
+        hasMine: false
+    };
 
-        // --- SAVE/LOAD LOGIC ---
+    let autoInterval = null;
 
-        // Function to save data
-        function saveGame() {
-            localStorage.setItem("coinClickerSave", JSON.stringify(gameData));
-            console.log("Game Saved!");
-        }
+    // --- LOGIC ---
 
-        // Function to load data
-        function loadGame() {
-            let savedData = JSON.parse(localStorage.getItem("coinClickerSave"));
-            if (savedData !== null) {
-                gameData = savedData;
-                updateUI();
-            }
-        }
+    function clickMain() {
+        gameData.coins += gameData.coinsPerClick;
+        updateUI();
+    }
 
-        // Attempt to save when the user closes the tab or refreshes
-        window.addEventListener("beforeunload", function () {
-            saveGame();
-        });
-
-        // Load the game as soon as the page opens
-        window.onload = function() {
-            loadGame();
-        };
-
-        // --- ORIGINAL GAME LOGIC ---
-
-        function clickMain() {
-            gameData.coins += gameData.coinsPerClick;
+    function buyUpgrade() {
+        if (gameData.coins >= gameData.upgradeCost) {
+            gameData.coins -= gameData.upgradeCost;
+            gameData.coinsPerClick += 1;
+            gameData.upgradeCost = Math.round(gameData.upgradeCost * 1.6);
             updateUI();
         }
+    }
 
-        function buyUpgrade() {
-            if (gameData.coins >= gameData.upgradeCost) {
-                gameData.coins -= gameData.upgradeCost;
-                gameData.coinsPerClick += 1;
-                gameData.upgradeCost = Math.round(gameData.upgradeCost * 1.5);
-                updateUI();
-            } else {
-                alert("Not enough coins!");
-            }
+    function buyAutoClicker() {
+        if (gameData.coins >= gameData.autoCost && gameData.autoLvl < 10) {
+            gameData.coins -= gameData.autoCost;
+            gameData.autoLvl++;
+            gameData.autoCost = Math.round(gameData.autoCost * 2.5);
+            startAutoClicker();
+            updateUI();
+        }
+    }
+
+    function buyMine() {
+        if (gameData.coins >= gameData.mineCost) {
+            gameData.coins -= gameData.mineCost;
+            gameData.coinsPerClick += 5;
+            gameData.mineCost = Math.round(gameData.mineCost * 2);
+            updateUI();
+        }
+    }
+
+    function startAutoClicker() {
+        if (autoInterval) clearInterval(autoInterval);
+        
+        // Speed formula: Level 1 = 1000ms, Level 10 = 100ms
+        let speed = 1100 - (gameData.autoLvl * 100);
+        
+        autoInterval = setInterval(() => {
+            gameData.coins += gameData.coinsPerClick;
+            updateUI();
+        }, speed);
+    }
+
+    function updateUI() {
+        document.getElementById("coinCount").innerText = Math.floor(gameData.coins);
+        document.getElementById("gpc").innerText = gameData.coinsPerClick;
+        document.getElementById("upgradeCost").innerText = gameData.upgradeCost;
+        
+        // Auto Clicker UI
+        document.getElementById("autoLvl").innerText = gameData.autoLvl;
+        document.getElementById("autoCost").innerText = gameData.autoCost;
+        document.getElementById("autoSpeed").innerText = gameData.autoLvl > 0 ? (1.1 - (gameData.autoLvl * 0.1)).toFixed(1) + "s" : "Off";
+        if(gameData.autoLvl >= 10) {
+            document.getElementById("autoButton").innerText = "Auto-Clicker MAXED";
+            document.getElementById("autoButton").disabled = true;
         }
 
-        function updateUI() {
-            document.getElementById("coinCount").innerText = gameData.coins;
-            document.getElementById("gpc").innerText = gameData.coinsPerClick;
-            document.getElementById("upgradeCost").innerText = gameData.upgradeCost;
+        // Show/Hide Secret Mine
+        if (gameData.coins >= 100 || gameData.mineCost > 200) {
+            document.getElementById("mineButton").classList.remove("hidden");
+            document.getElementById("mineCost").innerText = gameData.mineCost;
         }
-    </script>
+    }
+
+    // --- SAVE/LOAD ---
+
+    function saveGame() {
+        localStorage.setItem("coinClickerSaveV2", JSON.stringify(gameData));
+    }
+
+    function loadGame() {
+        let savedData = JSON.parse(localStorage.getItem("coinClickerSaveV2"));
+        if (savedData !== null) {
+            gameData = savedData;
+            if (gameData.autoLvl > 0) startAutoClicker();
+            updateUI();
+        }
+    }
+
+    window.addEventListener("beforeunload", () => saveGame());
+    window.onload = () => loadGame();
+
+</script>
 </body>
 </html>
