@@ -3,10 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My GitHub Pages Site</title>
+    <title>Coin Clicker Game</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; }
+        #clickButton { padding: 20px 40px; font-size: 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; }
+        #clickButton:hover { background-color: #45a049; }
+        .stats { font-size: 18px; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h1>Hello World!</h1>
-    <p>Welcome to my live website hosted on GitHub Pages.</p>
+
+    <h1>Coin Clicker!</h1>
+    <p class="stats">Coins: <span id="coinCount">0</span></p>
+    <p>Coins per click: <span id="gpc">1</span></p>
+
+    <button id="clickButton" onclick="clickMain()">Click Me!</button>
+    <br>
+    <button id="upgradeButton" onclick="buyUpgrade()">
+        Upgrade (Cost: <span id="upgradeCost">10</span>)
+    </button>
+
+    <script>
+        // Game State
+        let gameData = {
+            coins: 0,
+            coinsPerClick: 1,
+            upgradeCost: 10
+        }
+
+        // Click Function
+        function clickMain() {
+            gameData.coins += gameData.coinsPerClick;
+            updateUI();
+        }
+
+        // Upgrade Function
+        function buyUpgrade() {
+            if (gameData.coins >= gameData.upgradeCost) {
+                gameData.coins -= gameData.upgradeCost;
+                gameData.coinsPerClick += 1;
+                gameData.upgradeCost = Math.round(gameData.upgradeCost * 1.5);
+                updateUI();
+            } else {
+                alert("Not enough coins!");
+            }
+        }
+
+        // Update Screen Elements
+        function updateUI() {
+            document.getElementById("coinCount").innerText = gameData.coins;
+            document.getElementById("gpc").innerText = gameData.coinsPerClick;
+            document.getElementById("upgradeCost").innerText = gameData.upgradeCost;
+        }
+    </script>
 </body>
 </html>
