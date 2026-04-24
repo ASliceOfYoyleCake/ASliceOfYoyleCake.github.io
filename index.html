@@ -10,7 +10,7 @@
         #clickButton { padding: 20px 40px; font-size: 24px; background-color: #4CAF50; color: white; border: none; }
         #clickButton:hover { background-color: #45a049; }
         #saveButton { background-color: #2196F3; color: white; border: none; }
-        #resetButton { background-color: #2196F3; color: red; border: none; }
+        #resetButton { background-color: #f32121; color: rgb(255, 255, 255); border: none; }
         .stats { font-size: 18px; font-weight: bold; }
         .hidden { display: none; }
     </style>
@@ -54,6 +54,7 @@
         };
 
         let autoInterval = null;
+        let isResetting = false;
 
         // --- GAME LOGIC ---
 
@@ -129,6 +130,7 @@
         }
 
         function resetGame() {
+            isResetting = false;
             localStorage.setItem("coinClickerSave", JSON.stringify(baseCopy));
             console.log("Game Reset!");
             location.reload(); // This line refreshes the page
@@ -137,16 +139,20 @@
 
         function loadGame() {
             let savedData = JSON.parse(localStorage.getItem("coinClickerSave"));
-            if (savedData !== null) {
-                gameData = savedData;
-                if (gameData.autoLvl > 0) startAutoClicker();
+            if (savedData) {
+                gameData = Object.assign({}, baseCopy, savedData);
+                if (gameData.autoLvl > 0) {
+                    startAutoClicker();
+                }
                 updateUI();
             }
         }
 
         // Attempt to save when the user closes the tab or refreshes
         window.addEventListener("beforeunload", function () {
-            saveGame();
+            if (!isResetting) {
+                saveGame();
+            }
         });
 
         // Load the game as soon as the page opens
