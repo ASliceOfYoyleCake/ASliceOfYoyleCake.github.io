@@ -10,6 +10,7 @@
         #clickButton { padding: 20px 40px; font-size: 24px; background-color: #4CAF50; color: white; border: none; }
         #clickButton:hover { background-color: #45a049; }
         #saveButton { background-color: #2196F3; color: white; border: none; }
+        #resetButton { background-color: #2196F3; color: red; border: none; }
         .stats { font-size: 18px; font-weight: bold; }
         .hidden { display: none; }
     </style>
@@ -32,10 +33,19 @@
     </button>
     <br>
     <button id="saveButton" onclick="saveGame()">Save Progress</button>
+    <button id="resetButton" onclick="resetGame()">Reset Progress</button>
 
     <script>
         // Default Game State
         let gameData = {
+            coins: 0,
+            coinsPerClick: 1,
+            upgradeCost: 10,
+            autoLvl: 0,
+            autoCost: 50
+        };
+
+        let baseCopy = {
             coins: 0,
             coinsPerClick: 1,
             upgradeCost: 10,
@@ -117,6 +127,13 @@
             localStorage.setItem("coinClickerSave", JSON.stringify(gameData));
             console.log("Game Saved!");
         }
+
+        function resetGame() {
+            localStorage.setItem("coinClickerSave", JSON.stringify(baseCopy));
+            console.log("Game Reset!");
+            location.reload(); // This line refreshes the page
+        }
+
 
         function loadGame() {
             let savedData = JSON.parse(localStorage.getItem("coinClickerSave"));
