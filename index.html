@@ -5,56 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Coin Clicker Game</title>
     <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            padding-top: 50px;
-            background-color: #f4f4f9;
-            display: flex;
-            justify-content: center;
-        }
-        #game-container {
-            flex: 1;
-        }
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background-color: #f4f4f9; display: flex; justify-content: center; }
+        #game-container { flex: 1; }
         /* Log Panel Styling */
-        #log-panel {
-            width: 250px;
-            height: 90vh;
-            background: #222;
-            color: #0f0;
-            font-family: monospace;
-            font-size: 12px;
-            text-align: left;
-            padding: 10px;
-            margin-right: 20px;
-            border-radius: 8px;
-            overflow-y: auto;
-            box-shadow: inset 0 0 10px #000;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        #clickButton {
-            padding: 20px 40px;
-            font-size: 24px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-        }
+        #log-panel { width: 250px; height: 90vh; background: #222; color: #0f0; font-family: monospace; font-size: 12px; text-align: left; padding: 10px; margin-right: 20px; border-radius: 8px; overflow-y: auto; box-shadow: inset 0 0 10px #000; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        #clickButton { padding: 20px 40px; font-size: 24px; background-color: #4CAF50; color: white; border: none; }
         #clickButton:hover { background-color: #45a049; }
         #saveButton { background-color: #2196F3; color: white; border: none; }
         #resetButton { background-color: #f32121; color: white; border: none; }
+        #prestigeButton { background-color: #9c27b0; color: white; border: none; display: none; }
         .stats { font-size: 18px; font-weight: bold; }
         .hidden { display: none; }
+        .prestige-container { margin-top: 20px; border-top: 2px solid #ccc; padding-top: 10px; }
     </style>
 </head>
 <body>
-
     <div id="game-container">
         <h1>Coin Clicker!</h1>
         <p class="stats">Coins: <span id="coinCount">0</span></p>
@@ -63,16 +29,24 @@
         
         <button id="clickButton" onclick="clickMain()">Click Me!</button>
         <br>
-        <button id="upgradeButton" onclick="buyUpgrade()">
-            Upgrade (Cost: <span id="upgradeCost">10</span>)
-        </button>
+        <button id="upgradeButton" onclick="buyUpgrade()"> Upgrade (Cost: <span id="upgradeCost">10</span>) </button>
         <br>
-        <button id="autoButton" onclick="buyAutoClicker()">
-            Auto-Clicker Lvl <span id="autoLvl">0</span> (Cost: <span id="autoCost">50</span>)
-        </button>
+        <button id="autoButton" onclick="buyAutoClicker()"> Auto-Clicker Lvl <span id="autoLvl">0</span> (Cost: <span id="autoCost">50</span>) </button>
         <br>
         <button id="saveButton" onclick="saveGame()">Save Progress</button>
         <button id="resetButton" onclick="resetGame()">Reset Progress</button>
+
+        <div class="prestige-container">
+            <h3>Prestige</h3>
+            <p>Prestige Points: <span id="pPoints">0</span></p>
+            <button id="prestigeButton" onclick="prestige()">
+                Prestige for +<span id="pGain">0</span> points
+            </button>
+            <br>
+            <button id="pUpgradeButton" onclick="buyPrestigeUpgrade()">
+                Double Click Power (Cost: 1 PP)
+            </button>
+        </div>
     </div>
 
     <!-- Testing Log Panel -->
@@ -81,120 +55,193 @@
         <div id="log-content"></div>
     </div>
 
-<script>
-    // Default Game State
-    const baseCopy = { coins: 0, coinsPerClick: 1, upgradeCost: 10, autoLvl: 0, autoCost: 50 };
-    let gameData = { ...baseCopy };
-    
-    let autoInterval = null;
-    let isResetting = false;
+    <script>
+        // Default Game State (Resetable)
+        const baseCopy = {
+            coins: 0,
+            coinsPerClick: 1,
+            upgradeCost: 10,
+            autoLvl: 0,
+            autoCost: 50,
+            // These persist
+            prestigePoints: 0,
+            pUpgradeLevel: 0
+        };
 
-    // Helper function to print to the side panel
-    function log(message) {
-        const content = document.getElementById("log-content");
-        const entry = document.createElement("div");
-        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        content.prepend(entry); // Newest logs at the top
-        console.log(message);
-    }
+        let gameData = { ...baseCopy };
+        let autoInterval = null;
+        let isResetting = false;
 
-    function clickMain() {
-        gameData.coins += gameData.coinsPerClick;
-        updateUI();
-    }
+        // Helper function to print to the side panel
+        function log(message) {
+            const content = document.getElementById("log-content");
+            const entry = document.createElement("div");
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            content.prepend(entry);
+            console.log(message);
+        }
 
-    function buyUpgrade() {
-        if (gameData.coins >= gameData.upgradeCost) {
-            gameData.coins -= gameData.upgradeCost;
-            gameData.coinsPerClick += 1;
-            gameData.upgradeCost = Math.round(gameData.upgradeCost * 1.5);
-            log("Upgraded click power!");
+        function getClickPower() {
+            let base = gameData.coinsPerClick;
+            // Apply prestige multiplier: 2x per upgrade level
+            return base * Math.pow(2, gameData.pUpgradeLevel);
+        }
+
+        function clickMain() {
+            gameData.coins += getClickPower();
             updateUI();
-        } else {
-            log("Error: Not enough coins for upgrade");
-        }
-    }
-
-    function buyAutoClicker() {
-        if (gameData.coins >= gameData.autoCost && gameData.autoLvl < 10) {
-            gameData.coins -= gameData.autoCost;
-            gameData.autoLvl++;
-            gameData.autoCost = Math.round(gameData.autoCost * 2);
-            log(`Auto-clicker Level Up: ${gameData.autoLvl}`);
-            startAutoClicker();
-            updateUI();
-        } else if (gameData.autoLvl >= 10) {
-            log("Auto-Clicker at Max Level");
-        } else {
-            log("Error: Not enough coins for auto-clicker");
-        }
-    }
-
-    function startAutoClicker() {
-        if (autoInterval) clearInterval(autoInterval);
-        let speed = 1100 - (gameData.autoLvl * 100);
-        autoInterval = setInterval(() => {
-            gameData.coins += gameData.coinsPerClick;
-            updateUI();
-        }, speed);
-    }
-
-    function updateUI() {
-        document.getElementById("coinCount").innerText = Math.floor(gameData.coins);
-        document.getElementById("gpc").innerText = gameData.coinsPerClick;
-        document.getElementById("upgradeCost").innerText = gameData.upgradeCost;
-        document.getElementById("autoLvl").innerText = gameData.autoLvl;
-        document.getElementById("autoCost").innerText = gameData.autoCost;
-
-        if (gameData.autoLvl > 0) {
-            let speed = ((1100 - (gameData.autoLvl * 100)) / 1000).toFixed(1);
-            document.getElementById("autoSpeed").innerText = speed + "s";
-            document.getElementById("autoSpeedText").classList.remove("hidden");
         }
 
-        if (gameData.autoLvl >= 10) {
-            document.getElementById("autoButton").disabled = true;
-        }
-    }
-
-    // --- SAVE/LOAD LOGIC ---
-    function saveGame() {
-        localStorage.setItem("coinClickerSave", JSON.stringify(gameData));
-        log("Game manually saved.");
-    }
-
-    function resetGame() {
-        isResetting = true; // Set flag so beforeunload doesn't re-save
-        localStorage.removeItem("coinClickerSave");
-        gameData = { ...baseCopy };
-        log("Progress wiped. Reloading...");
-        location.reload(); 
-    }
-
-    function loadGame() {
-        let savedData = JSON.parse(localStorage.getItem("coinClickerSave"));
-        if (savedData) {
-            gameData = Object.assign({}, baseCopy, savedData);
-            if (gameData.autoLvl > 0) {
-                startAutoClicker();
+        function buyUpgrade() {
+            if (gameData.coins >= gameData.upgradeCost) {
+                gameData.coins -= gameData.upgradeCost;
+                gameData.coinsPerClick += 1;
+                gameData.upgradeCost = Math.round(gameData.upgradeCost * 1.5);
+                log("Upgraded click power!");
+                updateUI();
+            } else {
+                log("Error: Not enough coins for upgrade");
             }
-            updateUI();
-            log("Save file loaded successfully.");
-        } else {
-            log("No save file found. Starting fresh.");
         }
-    }
 
-    window.addEventListener("beforeunload", function () {
-        // Only save if we aren't intentionally resetting
-        if (!isResetting) {
-            localStorage.setItem("coinClickerSave", JSON.stringify(gameData));
+        function buyAutoClicker() {
+            if (gameData.coins >= gameData.autoCost && gameData.autoLvl < 10) {
+                gameData.coins -= gameData.autoCost;
+                gameData.autoLvl++;
+                gameData.autoCost = Math.round(gameData.autoCost * 2);
+                log(`Auto-clicker Level Up: ${gameData.autoLvl}`);
+                startAutoClicker();
+                updateUI();
+            } else if (gameData.autoLvl >= 10) {
+                log("Auto-Clicker at Max Level");
+            } else {
+                log("Error: Not enough coins for auto-clicker");
+            }
         }
-    });
 
-    window.onload = function() {
-        loadGame();
-    };
-</script>
+        function startAutoClicker() {
+            if (autoInterval) clearInterval(autoInterval);
+            let speed = 1100 - (gameData.autoLvl * 100);
+            autoInterval = setInterval(() => {
+                gameData.coins += getClickPower();
+                updateUI();
+            }, speed);
+        }
+
+        // --- PRESTIGE LOGIC ---
+        function calculatePrestigeGain() {
+            // Gain 1 point per 1 million coins, minimum 1
+            return Math.floor(gameData.coins / 10000);
+        }
+
+        function prestige() {
+            let gain = calculatePrestigeGain();
+            if (gain < 1) {
+                log("Not enough coins to prestige (Need 1,000,000+)");
+                return;
+            }
+
+            if(confirm(`Prestige for ${gain} Prestige Points? Your coins, upgrades, and auto-clickers will reset.`)) {
+                gameData.prestigePoints += gain;
+                
+                // Reset standard progression
+                gameData.coins = baseCopy.coins;
+                gameData.coinsPerClick = baseCopy.coinsPerClick;
+                gameData.upgradeCost = baseCopy.upgradeCost;
+                gameData.autoLvl = baseCopy.autoLvl;
+                gameData.autoCost = baseCopy.autoCost;
+                
+                if (autoInterval) clearInterval(autoInterval);
+                
+                log(`Prestiged! Gained ${gain} points.`);
+                updateUI();
+                saveGame();
+            }
+        }
+
+        function buyPrestigeUpgrade() {
+            if (gameData.prestigePoints >= 1) {
+                gameData.prestigePoints -= 1;
+                gameData.pUpgradeLevel++;
+                log("Prestige Upgrade Bought: Double Click Power!");
+                updateUI();
+            } else {
+                log("Not enough Prestige Points");
+            }
+        }
+
+        // --- UI & CORE ---
+        function updateUI() {
+            document.getElementById("coinCount").innerText = Math.floor(gameData.coins).toLocaleString();
+            document.getElementById("gpc").innerText = getClickPower().toLocaleString();
+            document.getElementById("upgradeCost").innerText = gameData.upgradeCost.toLocaleString();
+            document.getElementById("autoLvl").innerText = gameData.autoLvl;
+            document.getElementById("autoCost").innerText = gameData.autoCost.toLocaleString();
+            
+            // Prestige UI
+            document.getElementById("pPoints").innerText = gameData.prestigePoints;
+            let pGain = calculatePrestigeGain();
+            document.getElementById("pGain").innerText = pGain;
+            
+            let pButton = document.getElementById("prestigeButton");
+            if (pGain > 0) {
+                pButton.style.display = "inline-block";
+            } else {
+                pButton.style.display = "none";
+            }
+
+            if (gameData.autoLvl > 0) {
+                let speed = ((1100 - (gameData.autoLvl * 100)) / 1000).toFixed(1);
+                document.getElementById("autoSpeed").innerText = speed + "s";
+                document.getElementById("autoSpeedText").classList.remove("hidden");
+            }
+            if (gameData.autoLvl >= 10) {
+                document.getElementById("autoButton").disabled = true;
+            } else {
+                document.getElementById("autoButton").disabled = false;
+            }
+        }
+
+        // --- SAVE/LOAD LOGIC ---
+        function saveGame() {
+            localStorage.setItem("coinClickerSaveV2", JSON.stringify(gameData));
+            log("Game saved.");
+        }
+
+        function resetGame() {
+            if(confirm("Are you sure you want to hard reset EVERYTHING?")) {
+                isResetting = true;
+                localStorage.removeItem("coinClickerSaveV2");
+                gameData = { ...baseCopy };
+                log("Progress wiped. Reloading...");
+                location.reload();
+            }
+        }
+
+        function loadGame() {
+            let savedData = JSON.parse(localStorage.getItem("coinClickerSaveV2"));
+            if (savedData) {
+                // Merge loaded data with default base to handle new added properties
+                gameData = Object.assign({}, baseCopy, savedData);
+                if (gameData.autoLvl > 0) {
+                    startAutoClicker();
+                }
+                updateUI();
+                log("Save file loaded successfully.");
+            } else {
+                log("No save file found. Starting fresh.");
+            }
+        }
+
+        window.addEventListener("beforeunload", function () {
+            if (!isResetting) {
+                saveGame();
+            }
+        });
+
+        window.onload = function() {
+            loadGame();
+        };
+    </script>
 </body>
 </html>
